@@ -46,7 +46,7 @@ phases:
       - "echo Latest: $REPOSITORY_URI:latest"
 
       - echo "Writing image definitions file..."
-      - printf '[{"name":"aws-cicd-registry","imageUri":"%s"}]' "$REPOSITORY_URI:$IMAGE_TAG" > imagedefinitions.json
+      - printf '[{"name":"inventory-service-container","imageUri":"%s"}]' "$REPOSITORY_URI:$IMAGE_TAG" > imagedefinitions.json
       - cat imagedefinitions.json
 
 artifacts:
