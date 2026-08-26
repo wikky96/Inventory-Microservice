@@ -23,5 +23,13 @@ public class InventoryController
 	}
 	
 	
+	@GetMapping("/finalCheck")
+	@Operation(summary = "Final Check Api")
+	public String finalCheck() 
+	{
+		return "Application Final is Up";
+	}
+	
+	
 	
 }
