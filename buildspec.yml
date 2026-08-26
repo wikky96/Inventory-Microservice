@@ -1,0 +1,55 @@
+version: 0.2
+
+phases:
+
+  pre_build:
+    commands:
+      - echo "Logging in to Amazon ECR..."
+
+      - AWS_ACCOUNT_ID=811267951353
+      - AWS_DEFAULT_REGION=ap-southeast-2
+      - ECR_REPOSITORY=inventory-service-registry
+
+      - REPOSITORY_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$ECR_REPOSITORY
+
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+
+      - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
+      - BUILD_ID=$(echo $CODEBUILD_BUILD_ID | cut -d ':' -f 2)
+
+      - IMAGE_TAG=${COMMIT_HASH}-${BUILD_ID}
+
+      - "echo Repository=$REPOSITORY_URI"
+      - "echo ImageTag=$IMAGE_TAG"
+
+  build:
+    commands:
+      - echo "Building Java application..."
+      - mvn clean package -DskipTests
+
+      - echo "Building Docker image..."
+      - docker build -t $REPOSITORY_URI:$IMAGE_TAG .
+
+      - echo "Tagging image as latest..."
+      - "docker tag $REPOSITORY_URI:$IMAGE_TAG $REPOSITORY_URI:latest"
+
+  post_build:
+    commands:
+      - echo "Pushing image with unique tag..."
+      - docker push $REPOSITORY_URI:$IMAGE_TAG
+
+      - echo "Pushing latest tag..."
+      - docker push $REPOSITORY_URI:latest
+
+      - echo "Build completed successfully."
+      - "echo Image: $REPOSITORY_URI:$IMAGE_TAG"
+      - "echo Latest: $REPOSITORY_URI:latest"
+
+      - echo "Writing image definitions file..."
+      - printf '[{"name":"aws-cicd-registry","imageUri":"%s"}]' "$REPOSITORY_URI:$IMAGE_TAG" > imagedefinitions.json
+      - cat imagedefinitions.json
+
+artifacts:
+  files:
+    - imagedefinitions.json
+    - target/*.jar
